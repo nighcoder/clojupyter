@@ -60,7 +60,7 @@
 ;;; ----------------------------------------------------------------------------------------------------
 
 (defn s*interpret-nrepl-message
-  [{:keys [ns out err ex mime-tagged-value status]}]
+  [{:keys [ns out err ex mime-tagged-value status value content-type body]}]
   (C (s*when ns
        (s*set-ns ns))
      (s*when out
@@ -69,6 +69,10 @@
        (s*append-output "stderr" err))
      (s*when ex
        (s*update-result (P assoc :ename ex)))
+     (s*when value
+       (s*update-result (P assoc :result (u/json-str {:text/plain value}))))
+     (s*when content-type
+       (s*update-result (P assoc :result (u/json-str {(first content-type) body}))))
      (s*when mime-tagged-value
        (s*update-result (P assoc :result mime-tagged-value)))
      (s*when (some #{"interrupted"} status)
@@ -222,4 +226,3 @@
                                    (ops/set-leave-action (action nil)))
                                [ic*provide-input ops/enter-action-interceptor])))
          ctx')))))
-

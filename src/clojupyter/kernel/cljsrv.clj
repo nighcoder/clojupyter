@@ -8,8 +8,8 @@
    [nrepl.core				:as nrepl]
    [nrepl.server]
    ,,
+   [clojupyter.kernel.nrepl-middleware :as mw]
    [clojupyter.messages		:as msgs]
-   [clojupyter.kernel.nrepl-middleware	:as mw]
    [clojupyter.log			:as log]
    [clojupyter.util-actions		:as u!]
    [clojupyter.util :as u]))
@@ -47,9 +47,9 @@
   ;; see https://github.com/clojure-emacs/cider-nrepl/issues/447
   (require 'cider.nrepl)
   (apply nrepl.server/default-handler
-         (map resolve
-              (concat (var-get (ns-resolve 'cider.nrepl 'cider-middleware))
-                      `[mw/mime-values]))))
+    (map resolve
+      (concat (var-get (ns-resolve 'cider.nrepl 'cider-middleware))
+                `[mw/mime-values]))))
 
 ;;; ------------------------------------------------------------------------------------------------------------------------
 ;;; MESSAGE PREDICATES
@@ -125,7 +125,7 @@
 
   (nrepl-eval
     [cljsrv code]
-    (->> {:id (u!/uuid), :op "eval", :code code}
+    (->> {:id (u!/uuid), :op "eval", :code code :content-type "true"}
          (nrepl/message nrepl-client_)
          (nrepl-continue-eval cljsrv)))
 
@@ -171,6 +171,19 @@
 (u!/set-var-private! #'->CljSrv)
 
 (u/define-simple-record-print CljSrv fmt)
+
+(defn connect-cljsrv
+  ([port] (connect-cljsrv port "localhost"))
+  ([port host]
+   (let [nrepl-server (reify java.io.Closeable
+                        (close [_] :ok))
+         nrepl-transport (nrepl/connect :port port :host host)
+         nrepl-base-client (nrepl/client nrepl-transport Integer/MAX_VALUE)
+         nrepl-client (nrepl/client-session nrepl-base-client)
+         nrepl-sockaddr (str host \: port)
+         cljsrv (->CljSrv nrepl-server nrepl-client nrepl-sockaddr (atom false))]
+      (log/info "Connected to nrepl server at " nrepl-sockaddr)
+      cljsrv)))
 
 (defn make-cljsrv ^CljSrv
   []

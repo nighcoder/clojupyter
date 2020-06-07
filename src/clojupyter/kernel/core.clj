@@ -128,10 +128,10 @@
                                           (start-fwd port (address config port) :pub))
                 [stdin-in stdin-out]	(let [port :stdin_port]
                                           (start-fwd port (address config port) :dealer))
-                jup			(make-jup ctrl-in  ctrl-out
-                                                  shell-in shell-out
-                                                  iopub-in iopub-out
-                                                  stdin-in stdin-out)]
+                jup		                (make-jup ctrl-in  ctrl-out
+                                                shell-in shell-out
+                                                iopub-in iopub-out
+                                                stdin-in stdin-out)]
             (hb/start-hb ztx (address config :hb_port) term)
             [jup term])))
       (log/debug "start-zmq-socket-fwd returning")))
@@ -146,7 +146,12 @@
           (init/ensure-init-global-state!)
           (let [[jup term] (start-zmq-socket-forwarding ztx config)
                 wait-ch	(shutdown/notify-on-shutdown term (chan 1))]
-            (with-open [cljsrv (cljsrv/make-cljsrv)]
+            (with-open [cljsrv (cond
+                                 (seq (System/getenv "NREPL_HOST")) (do (when (empty? (System/getenv "NREPL_PORT"))
+                                                                          (throw (new IllegalArgumentException "Can't connect to remote NREPL server without a port")))
+                                                                        (cljsrv/connect-cljsrv (Integer/parseInt (System/getenv "NREPL_PORT")) (System/getenv "NREPL_HOST")))
+                                 (seq (System/getenv "NREPL_PORT")) (cljsrv/connect-cljsrv (Integer/parseInt (System/getenv "NREPL_PORT")))
+                                 :else (cljsrv/make-cljsrv))]
               (run-kernel jup term cljsrv)
               (<!! wait-ch)
               (log/debug "start-clojupyter: wait-signal received"))))
