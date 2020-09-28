@@ -3,6 +3,7 @@
 Table of Contents
 
 * [Quickstart](#quickstart)
+* [Using Conda: Building Clojupyter](#using-conda-building-clojupyter)
 * [Using Conda: Installing Clojupyter](#using-conda-installing-clojupyter)
 * [Using Conda: Using Environments](#using-conda-using-environments)
 * [Using Conda: Upgrading Clojupyter](#using-conda-upgrading-clojupyter)
@@ -26,6 +27,7 @@ Go to the [Anaconda web site](https://www.anaconda.com), Click
 [Download](https://www.anaconda.com/distribution/), select your preferred platform, and download the
 `Python 3.7` edition of the Anaconda Distribution.
 
+
 ### Installing Clojypyter
 
 Once Anaconda is installed you use the included `conda` package management tool to install
@@ -33,7 +35,7 @@ Clojupyter from Anaconda Cloud.  Exactly how you run `conda` depends on the plat
 consult the Anaconda documentation.
 
 With access to `conda` installing Clojupyter (which is available on the `simplect` channel in
-Anaconda Cloud) is straightforward: 
+Anaconda Cloud) is straightforward:
 
 ```
 > conda install -y -c simplect clojupyter
@@ -47,6 +49,16 @@ done
 This should work on all supported platforms: Linux, MacOS and Windows.
 
 More details on installing below.
+
+## Using Conda: Building Clojupyter
+To build a conda package run:
+```bash
+$ make conda-build
+```
+
+To build a custom distribution of Clojupyter, run `make conda-config` to build the prerequisites, but without running `conda build`.
+At this point you can add any extra files to the package, update the meta file and/or the build
+scripts and run either `conda build conda` or `make conda-build`.
 
 ## Using Conda: Installing Clojupyter
 
@@ -65,45 +77,10 @@ some of the caveats you may run into, but it is not expected to be comprehensive
 jump ahead and familiarize yourself with that first before proceeding if you plan on using
 environments, but it is considered optional and the following will still apply.
 
-Clojupyter is available [as the `clojupyter` package on the `simplect` channel in Anaconda
-Cloud](https://anaconda.org/simplect/clojupyter).
-
-To do a basic install, use the `conda` subcommand `install`:
-
-```
-> conda install -y -c simplect clojupyter
-Collecting package metadata (repodata.json): done
-Solving environment: done
-
-## Package Plan ##
-
-  environment location: ~/anaconda3
-
-  added / updated specs:
-    - clojupyter
-
-
-The following NEW packages will be INSTALLED:
-
-  clojupyter         simplect/osx-64::clojupyter-0.2.3snapshot-2
-  maven              conda-forge/osx-64::maven-3.6.0-0
-
-
-Preparing transaction: done
-Verifying transaction: done
-Executing transaction: | b'Clojupyter v0.2.3-SNAPSHOT - \n\n \
-Successfully installed Clojupyter into ~/anaconda3/share/jupyter/kernels/conda-clojupyter.\
-\n\nexit(0)\n'
-done
->
-```
+To install Clojupyter, make sure your conda package build succesfully and run `conda install --use-local clojupyter`.
 
 Conda organizes software into **packages** which have **versions** which can be built and deployed
-multiple times with a **build number**, and delivers it on **channels**.  Clojupyter is available on
-the `simplect` channel which you will always have to specify since it is not among the default
-channels in Anaconda Cloud (you can configure `conda` to use the channel by default, though, see
-[Conda configuration](https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/index.html)
-for details).
+multiple times with a **build number**, and delivers it on **channels**.
 
 You can install a package simply by specifying the package name, or be more specific and indicate
 which version and/or build number you want to install.  The way to express the package/version/build
