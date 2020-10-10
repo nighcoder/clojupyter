@@ -28,7 +28,7 @@ SYSTEM_LIB_PATH=$(if [[ $(uname -s) == Darwin ]]; then
               else
                   echo /usr/local/lib
               fi)
-KERNEL=clojupyter-$($(dirname $0)/version)
+KERNEL=clojupyter-$(bin/version)
 
 ########################################################################################
 #  ARGUMENTS

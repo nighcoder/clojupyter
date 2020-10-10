@@ -36,7 +36,7 @@ SYSTEM_LIB_PATH=$(if [[ $(uname -s) == Darwin ]]; then
 [[ $# -gt 1 ]] && { echo Error: Wrong number of arguments \($#\) passed to program. >&2;
                     exit 1; }
 if [[ $# == 0 || -z $1 ]]; then
-    target=clojupyter-$($(dirname $0)/version)
+    target=clojupyter-$(bin/version)
 else
     target=$1
 fi

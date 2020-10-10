@@ -64,7 +64,7 @@ path_cols=$(( $cols - $id_cols - 2 ))
 b=$(tput bold)
 no_b=$(tput sgr0)
 
-printf "${b}%-${id_cols}s${no_b}|${b}%-${path_cols}s${no_b}\n" Identity Path
+printf "${b}%-${id_cols}s${no_b}|${b}%-${path_cols}s${no_b}\n" Identity Paths
 echo $(printf -- "-%.0s" $(seq ${id_cols}))\|$(printf -- "-%.0s" $(seq ${path_cols}))
 for r in $res; do
     r_name=$(echo $r | cut -d: -f1)
@@ -73,6 +73,7 @@ for r in $res; do
     [[ -r $SYSTEM_LIB_PATH/$r_name/plugins ]] && LIBPATH=$SYSTEM_LIB_PATH/$r_name/plugins
     [[ -n $LIBPATH ]] &&\
         prefix='Plugins: '
+        first_run=true
         for plug in $LIBPATH/*.jar; do
             plug_name=$(basename -s .jar $plug)
             [[ $plug_name == "*" ]] && break
@@ -80,6 +81,15 @@ for r in $res; do
                 suffix="$(tput cr)$(tput cuf $id_cols)|"
             else
                 suffix=
+            fi
+            if $first_run; then
+                if [[ -z $suffix ]]; then
+                    suffix=$(printf "\n$(realpath $LIBPATH/..)")
+                    first_run=false
+                else
+                    suffix="$suffix$(realpath $LIBPATH/..)"
+                    first_run=false
+                fi
             fi
             if [[ -r $LIBPATH/enabled/${plug_name}.jar ]]; then
                 echo "${prefix}$(tput setaf 40)✔︎ ${plug_name}$(tput sgr0)${suffix}"

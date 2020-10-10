@@ -29,11 +29,14 @@ SYSTEM_LIB_PATH=$(if [[ $(uname -s) == Darwin ]]; then
               fi)
 
 SYSTEM=false
-VERSION=$($(dirname $0)/version)
+VERSION=$(bin/version)
 IDENT="clojupyter-$VERSION"
 JAR=target/${IDENT}.jar
 
-HELP='not implemented'
+HELP='bin/install [[-i|--identity] <IDENTITY>] [[-j|--jar] <JAR_FILE>] [--system]
+OPTIONS: --identity: The kernel name to use when installing. Default: clojupyter-<version>
+         --jar: The jar file to use. Default: target/clojupyter-<version>.jar
+         --system: Install the kernel system-wide.'
 
 ########################################################################################
 # ARGUMENTS
@@ -46,7 +49,7 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
         --help)
-        echo $HELP
+        echo "$HELP"
         exit 0
         ;;
         --identity|-i)
