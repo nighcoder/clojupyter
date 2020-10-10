@@ -63,6 +63,18 @@
   (let [[repl-content _] (msgs/leaf-paths ca/comm-atom? #(str "IPY_MODEL_" (.-comm-id %)) rsp-content)]
     (assoc kernel-rsp :rsp-content repl-content)))
 
+(defn wrap-report-and-absorb-exceptions
+  ([f]
+   (wrap-report-and-absorb-exceptions nil f))
+  ([return-value f]
+   (fn [& args]
+     (try (u!/with-exception-logging
+              (apply f args))
+      (catch Exception e
+        (log/error e)
+        (Thread/sleep 10)
+        (assoc return-value :error e))))))
+
 (def- LOG-COUNTER
   "Enumerates all transducer output, showing the order of events."
   (atom 0))
@@ -83,7 +95,7 @@
 
 (defn- inbound-channel-transducer
   [port checker]
-  (u!/wrap-report-and-absorb-exceptions
+  (wrap-report-and-absorb-exceptions
    (msgs/transducer-error port)
    (C (wrap-skip-shutdown-tokens (C (p msgs/frames->jupmsg checker)
                                     (p msgs/jupmsg->kernelreq port)))
@@ -91,7 +103,7 @@
 
 (defn- outbound-channel-transducer
   [port signer]
-  (u!/wrap-report-and-absorb-exceptions
+  (wrap-report-and-absorb-exceptions
    (msgs/transducer-error port)
    (C (wrap-skip-shutdown-tokens
        (C (fn [krsp] (extract-kernel-response-byte-arrays krsp))

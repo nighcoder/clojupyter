@@ -8,10 +8,10 @@
             [clojupyter.kernel.handle-event.kernel-info :as kernel-info]
             [clojupyter.kernel.handle-event.ops :refer [call-interceptor]]
             [clojupyter.kernel.handle-event.shutdown :as shutdown]
+            [clojupyter.log :as log]
             [clojupyter.messages :as msgs]
             [clojupyter.state :as state]
-            [clojupyter.util-actions :as u!]
-            [io.simplect.compose.action :refer [action step]]))
+            [io.simplect.compose.action :refer [action step success?]]))
 
 (defn- handle-comm
   [ctx]
@@ -19,6 +19,16 @@
         [A S'] (comm-msg/handle-message S ctx)]
     {:leave-action (action A (step [`state/comm-state-swap! (constantly S')]
                                    {:op :comm-state-swap :old-state S :new-state S'}))}))
+(defn- execute-leave-action
+  [result]
+  (if-let [leave-action (:leave-action result)]
+    (let [action-result (leave-action {})]
+      (if (success? action-result)
+        (assoc result :leave-action action-result)
+        (do (log/error "Action failed: " (pr-str (.failure action-result)))
+            (when log/*verbose* (log/warn {:action leave-action, :action-result action-result}))
+            result)))
+    result))
 
 (defn- handle-execute-request
   [ctx]
@@ -82,4 +92,4 @@
   "Calculates and executes actions in response to Jupyter request `:req-message` in `ctx`.  Effectful (not pure)."
   [ctx]
   (let [response (calculate-response ctx)]
-    (u!/execute-leave-action response)))
+    (execute-leave-action response)))

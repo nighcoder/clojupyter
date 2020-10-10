@@ -43,20 +43,20 @@
   (sync-state [_]
     (select-keys @comm-state_ sync-keys))
   (close! [comm-atom]
-    (let [id (comm-id comm-atom)
-          content (msgs/comm-close-content id {})]
-      (jup/send!! (jupfld comm-atom) :iopub_port origin-message msgs/COMM-CLOSE MESSAGE-METADATA content)
-      (state/comm-state-swap! (P comm-global-state/comm-atom-remove id)))
+    (let [content (msgs/comm-close-content comm-id {})]
+      (jup/send!! jup_ :iopub_port origin-message msgs/COMM-CLOSE MESSAGE-METADATA content)
+      (state/comm-state-swap! (P comm-global-state/comm-atom-remove comm-id)))
       nil)
   (send! [comm-atom msg]
     (assert (and (jsonable? msg) (map? msg)))
-    (let [content (msgs/custom-comm-msg comm-id msgs/COMM-MSG-CUSTOM (target comm-atom) msg)]
-      (jup/send!! (jupfld comm-atom) :iopub_port (origin-message comm-atom) msgs/COMM-MSG MESSAGE-METADATA content))
+    (let [content (msgs/comm-msg-content comm-id {:method "custom" :content msg})]
+      (jup/send!! jup_ :iopub_port origin-message msgs/COMM-MSG MESSAGE-METADATA content))
       msg)
 
   java.io.Closeable
   (close [comm-atom]
-    (msgs/leaf-paths comm-atom? #(.close %) (.sync-state comm-atom)))
+    (msgs/leaf-paths comm-atom? #(.close %) (sync-state comm-atom))
+    (close! comm-atom))
 
   mc/PMimeConvertible
   (to-mime [_]
@@ -79,8 +79,8 @@
       false))
   (reset [comm-atom v]
     (assert (jsonable? (select-keys v sync-keys)))
-    (reset! comm-state_ v)
     (send-comm-state! comm-atom (select-keys v sync-keys))
+    (reset! comm-state_ v)
     v)
   (swap [comm-atom f]
     (let [state @comm-atom
@@ -120,21 +120,19 @@
   (removeWatch [_ key]
     (remove-watch comm-state_ key)))
 
-(defn- jupfld
-  [^CommAtom comm-atom]
-  (.-jup_ comm-atom))
 
 (defn- send-comm-state! [^CommAtom comm-atom, comm-state]
   (assert (and (jsonable? comm-state) (map? comm-state)))
-  (let [content (msgs/update-comm-msg (.-comm-id comm-atom) msgs/COMM-MSG-UPDATE (.-target comm-atom) comm-state)]
-    (jup/send!! (jupfld comm-atom) :iopub_port (.-origin-message comm-atom) msgs/COMM-MSG MESSAGE-METADATA content)))
+  (log/debug "Sending comm-state for widget with comm_id " (.-comm-id comm-atom))
+  (let [content (msgs/comm-msg-content (.-comm-id comm-atom) {:method "update" :state comm-state})]
+    (jup/send!! (.-jup_ comm-atom) :iopub_port (.-origin-message comm-atom) msgs/COMM-MSG MESSAGE-METADATA content)))
 
 (defn- send-comm-open! [^CommAtom comm-atom, comm-state]
   (assert (and (jsonable? comm-state) (map? comm-state)))
   (let [content (msgs/comm-open-content (.-comm-id comm-atom)
-                                        {:state comm-state :buffer_paths []}
+                                        {:state comm-state}
                                         {:target_name (.-target comm-atom)})]
-    (jup/send!! (jupfld comm-atom) :iopub_port (.-origin-message comm-atom) msgs/COMM-OPEN MESSAGE-METADATA content)))
+    (jup/send!! (.-jup_ comm-atom) :iopub_port (.-origin-message comm-atom) msgs/COMM-OPEN MESSAGE-METADATA content)))
 
 (defn- short-comm-id
   [^CommAtom comm-atom]

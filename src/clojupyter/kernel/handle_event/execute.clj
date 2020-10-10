@@ -104,10 +104,7 @@
   (assert cljsrv)
   (assert req-message)
   (assert nrepl-eval-result)
-  (let [{:keys [nrepl-messages
-                need-input
-                delayed-msgseq
-                trace-result]}	nrepl-eval-result
+  (let [{:keys [nrepl-messages need-input delayed-msgseq trace-result]} nrepl-eval-result
         _			(when need-input
                                   (assert delayed-msgseq))
         code 			(msgs/message-code req-message)

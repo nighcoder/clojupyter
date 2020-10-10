@@ -13,7 +13,7 @@
             [clojure.walk :as walk]
             [io.simplect.compose :refer [def- C fmap p sdefn]]))
 
-(def PROTOCOL-VERSION "5.2")
+(def PROTOCOL-VERSION "5.3")
 
 
 ;;; ------------------------------------------------------------------------------------------------------------------------
@@ -387,23 +387,20 @@
   {:target_name target-name})
 
 (sdefn comm-msg-content
-  (s/cat :comm-id ::comm-id, :data ::data, :opts (s/? (s/keys :opt-un [::target_module ::target_name])))
-  ([comm-id data]
-   (comm-msg-content comm-id data {}))
-  ([comm-id data {:keys [target_name target_module]}]
-   (merge {:comm_id comm-id, :data data}
-          (when target_name
-            {:target_name target_name})
-          (when target_module
-            {:target_module target_module}))))
+  (s/cat :comm-id ::comm-id, :data ::data)
+  [comm-id data]
+  {:comm_id comm-id :data data})
 
 (sdefn comm-open-content
   (s/cat :comm-id ::comm-id, :data ::data, :opts (s/? (s/keys :opt-un [::target_module ::target_name])))
   ([comm-id data]
    (comm-open-content comm-id data {}))
   ([comm-id data opts]
-   ;; `comm-open` and `comm` have identical content structure:
-   (comm-msg-content comm-id data opts)))
+   (merge (comm-msg-content comm-id data)
+     (when-let [target_name (:target_name opts)]
+       {:target_name target_name})
+     (when-let [target_module (:target_module opts)]
+       {:target_module target_module}))))
 
 (sdefn complete-reply-content
   (s/cat :matches ::matches, :start ::cursor-start, :end ::cursor-end)
@@ -568,29 +565,10 @@
   []
   {})
 
-(declare update-comm-msg)
-(sdefn output-set-msgid-content
-  (s/cat :comm-id ::comm-id :msgid string?)
-  [comm-id msgid]
-  (let [state {:msg_id msgid}]
-    (comm-msg-content comm-id state)))
-
-(sdefn output-update-content
-  (s/cat :comm-id ::comm-id
-         :target-name ::target_name
-         :stream-name #{"stdout" "stderr"}
-         :strings (s/coll-of string? :kind vector?))
-  [comm-id method target-name stream-name strings]
-  (let [state {:outputs (vec (for [s strings]
-                               {:name stream-name,
-                                :text s,
-                                :output_type "stream"}))}]
-    (update-comm-msg comm-id method target-name state)))
-
 (sdefn shutdown-reply-content
   (s/cat :restart? boolean?)
   [restart?]
-  {:restart (boolean restart?) :status "ok"})
+  {:restart (boolean restart?)})
 
 (sdefn shutdown-request-content
   (s/cat :restart? (s/? boolean?))
@@ -608,24 +586,7 @@
   [stream-name s]
   {:name stream-name, :text s})
 
-(sdefn update-comm-msg
-  (s/cat :comm-id ::comm-id, :method ::msp/comm-message-method,
-         :target-name ::msp/target_name,
-         :state map?, :buffer-paths (s/? vector?))
-  ([comm-id method target-name state]
-   (update-comm-msg comm-id method target-name state []))
-  ([comm-id method target-name state buffer-paths]
-   (comm-msg-content comm-id {:method method, :state state, :buffer_paths buffer-paths}
-                     {:target_name target-name})))
-
 (sdefn update-display-data
   (s/cat :data ::data, :metadata ::metadata, :transient ::transient)
   [data metadata tsient]
   {:data data, :metadata metadata, :transient tsient})
-
-(sdefn custom-comm-msg
-  (s/cat :comm-id ::comm-id, :method ::msp/comm-message-method,
-       :target-name ::msp/target_name,
-       :content map?)
-  [comm-id method target-name content]
-  (comm-msg-content comm-id {:method method :content content} {:target_name target-name}))

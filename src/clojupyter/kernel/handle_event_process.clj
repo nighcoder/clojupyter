@@ -13,7 +13,7 @@
   (log/error "handle-event-process: error on input" (log/ppstr {:msg msg})))
 
 (defn- handle-event-or-channel-error
-  "Handles request, returns `false` iff event-handling should terminate."
+  "Handles request, returns `false` if event-handling should terminate."
   [{:keys [jup] :as ctx} channel-port port-msgtype-pred inbound-msg]
   (let [{:keys [req-message req-port error?]} inbound-msg
         update-status! #(send!! jup :iopub_port req-message msgs/STATUS (msgs/status-message-content %))

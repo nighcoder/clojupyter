@@ -189,11 +189,11 @@
 ;;; KERNEL-INFO-REQUEST
 (s/def ::kernel-info-request-content	::empty-map)
 
-;;; SHUTDOWN-REPLY
-(s/def ::shutdown-reply-content		(s/merge (s/keys :req-un [::restart]), ::reply-message))
-
 ;;; SHUTDOWN-REQUEST
 (s/def ::shutdown-request-content	(s/keys :req-un [::restart]))
+
+;;; SHUTDOWN-REPLY
+(s/def ::shutdown-reply-content		::shutdown-request-content)
 
 ;;; STATUS-MSG
 (s/def ::execution-state		#{"busy" "idle" "starting"})
