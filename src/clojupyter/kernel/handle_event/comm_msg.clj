@@ -152,8 +152,7 @@
           [NO-OP-ACTION S])
       (let [msgtype msgs/COMM-OPEN
             content (msgs/comm-open-content comm_id data {:target_module target_module :target_name target_name})
-            ;; BUG?: Why are we passing empty set to sync-keys?
-            comm-atom (ca/create jup req-message target_name comm_id #{} state)
+            comm-atom (ca/create jup req-message target_name comm_id (set (keys state)) state)
             A (action (step nil {:op :comm-add :port IOPUB :msgtype msgtype :content content}))
             S' (comm-global-state/comm-atom-add S comm_id comm-atom)]
           [A S']))))
