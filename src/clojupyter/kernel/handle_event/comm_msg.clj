@@ -29,6 +29,16 @@
           (when metadata
             {:metadata metadata}))))
 
+(defn insert-binary-buffers
+  [{:keys [state buffer_paths] :as data} buffers]
+  (assert state)
+  (if (and (seq buffer_paths) (seq buffers))
+    (let [buffers (.-buffers buffers)
+          [paths _] (msgs/leaf-paths string? keyword buffer_paths)
+          repl_map (reduce merge (map hash-map paths buffers))]
+      (msgs/insert-paths state repl_map))
+    state))
+
 (defmulti ^:private calc*
   (fn [msgtype _ _] msgtype))
 
@@ -79,25 +89,14 @@
   [_ S {:keys [req-message] :as ctx}]
   (assert req-message)
   (log/debug "Received COMM:UPDATE")
-  (let [{{:keys [comm_id] {:keys [method state buffer_paths]} :data} :content} req-message]
+  (let [{{:keys [comm_id] {:keys [method state buffer_paths] :as data} :data} :content buffers :buffers} req-message]
     (assert comm_id)
     (assert state)
     (if-let [comm-atom (comm-global-state/comm-atom-get S comm_id)]
-      (if (seq buffer_paths)
-        (let [_ (log/debug "Received COMM-UPDATE with known comm_id: " comm_id " and state: " state)
-              buffers (msgs/message-buffers req-message)
-              _ (assert (= (count buffer_paths) (count buffers)))
-              [paths _] (msgs/leaf-paths string? keyword buffer_paths)
-              repl-map (reduce merge (map hash-map paths buffers))
-              _ (log/debug "Got paths: " paths "Got buffer replacement map: " repl-map)
-              state (msgs/insert-paths state repl-map)
-              A (action (side-effect #(swap! (.-comm-state_ comm-atom) merge state)
+      (let [state (insert-binary-buffers data buffers)
+            A (action (side-effect #(swap! (.-comm-state_ comm-atom) merge state)
                                      {:op :update-agent :comm-id comm_id :new-state state}))]
           [A S])
-        (let [A (action (side-effect #(swap! (.-comm-state_ comm-atom) merge state)
-                                    {:op :update-agent :comm-id comm_id :new-state state}))]
-          (log/debug "Received COMM-UPDATE with empty buffers and known comm_id: " comm_id " and state: " state)
-          [A S]))
       (do (log/debug "Received COMM-UPDATE with unknown comm_id: " comm_id " and state: " state)
           (handle-comm-msg-unknown ctx S comm_id)))))
 
@@ -138,7 +137,7 @@
 (defmethod calc* msgs/COMM-OPEN
   [_ S {:keys [req-message jup] :as ctx}]
   (assert (and req-message jup ctx))
-  (let [{{:keys [comm_id target_module target_name]
+  (let [{{:keys [comm_id target_module target_name buffers]
           {:keys [state buffer_paths] :as data} :data :as content} :content}
         ,, req-message]
     (assert S)
@@ -150,10 +149,10 @@
     (if-let [present? (comm-global-state/known-comm-id? S comm_id)]
       (do (log/debug "COMM-OPEN - already present")
           [NO-OP-ACTION S])
-      (let [msgtype msgs/COMM-OPEN
+      (let [state (insert-binary-buffers data buffers)
             content (msgs/comm-open-content comm_id data {:target_module target_module :target_name target_name})
             comm-atom (ca/create jup req-message target_name comm_id (set (keys state)) state)
-            A (action (step nil {:op :comm-add :port IOPUB :msgtype msgtype :content content}))
+            A (action (step nil {:op :comm-add :port IOPUB :msgtype msgs/COMM-OPEN :content content}))
             S' (comm-global-state/comm-atom-add S comm_id comm-atom)]
           [A S']))))
 
