@@ -110,7 +110,8 @@
         code 			(msgs/message-code req-message)
         exe-count		(state/execute-count)
         eval-interpretation	((s*interpret-nrepl-eval-results nrepl-messages) {})
-        {:keys [interrupted? result output]}	eval-interpretation
+        {:keys [interrupted?
+                result output]}	eval-interpretation
         {:keys [ename]}		result
         silent?			(silent-eval? ctx)
         hushed?			(u/code-hushed? code)
@@ -126,8 +127,8 @@
         nrepl-ctx		(state/current-context)
         nrepl-leave-action	(:leave-action nrepl-ctx)
         send-step		(fn [sock-kw msgtype message]
-                          (step (fn [S] (send!! jup sock-kw req-message msgtype message) S)
-                                {:message-to sock-kw :msgtype msgtype :message message}))]
+                                  (step (fn [S] (send!! jup sock-kw req-message msgtype message) S)
+                                        {:message-to sock-kw :msgtype msgtype :message message}))]
     (C (s*a-l (step identity
                     {:op :no-op
                      :interpretation {:interpretation eval-interpretation,
@@ -150,12 +151,14 @@
                       {:op :get-input})))
        (s*when (and final-segment? (not silent?))
          (if ename
-           (s*a-l (send-step :iopub_port msgs/ERROR (dissoc reply :status :execution_count)))
+           (s*a-l (send-step :iopub_port msgs/ERROR reply))
            (s*when-not hushed?
              (s*a-l (send-step :iopub_port msgs/EXECUTE-RESULT
                                (msgs/execute-result-content (u/parse-json-str (:result result) true) exe-count))))))
        (s*when final-segment?
-         (s*a-l (send-step req-port msgs/EXECUTE-REPLY reply)))
+         (if ename
+           (s*a-l (send-step req-port msgs/ERROR reply))
+           (s*a-l (send-step req-port msgs/EXECUTE-REPLY reply))))
        (s*when (and store-history? final-segment?)
          (s*a-l (step [`state/add-history! code]
                       {:op :add-history, :data code})))
