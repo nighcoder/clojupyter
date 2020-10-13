@@ -7,7 +7,7 @@
    [clojupyter.messages :as msgs]
    [clojupyter.messages-specs :as msp]
 
-
+   [clojure.string :as str]
    [clojure.spec.alpha :as s]
    [clojure.spec.test.alpha :refer [instrument]]
    [io.simplect.compose :refer [def- C p P]]
@@ -38,6 +38,13 @@
           repl_map (reduce merge (map hash-map paths buffers))]
       (msgs/insert-paths state repl_map))
     state))
+
+(defn insert-comm-atoms
+  [global-state comm-state]
+  (first (msgs/leaf-paths #(and (string? %) (re-find #"^IPY_MODEL_[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$" %))
+                          #(let [[_ id] (re-find #"^IPY_MODEL_([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$" %)]
+                            (comm-global-state/comm-atom-get global-state (str/lower-case id)))
+                          comm-state)))
 
 (defmulti ^:private calc*
   (fn [msgtype _ _] msgtype))
@@ -94,6 +101,7 @@
     (assert state)
     (if-let [comm-atom (comm-global-state/comm-atom-get S comm_id)]
       (let [state (insert-binary-buffers data buffers)
+            state (insert-comm-atoms S state)
             A (action (side-effect #(swap! (.-comm-state_ comm-atom) merge state)
                                      {:op :update-agent :comm-id comm_id :new-state state}))]
           [A S])
@@ -150,6 +158,7 @@
       (do (log/debug "COMM-OPEN - already present")
           [NO-OP-ACTION S])
       (let [state (insert-binary-buffers data buffers)
+            state (insert-comm-atoms S state)
             content (msgs/comm-open-content comm_id data {:target_module target_module :target_name target_name})
             comm-atom (ca/create jup req-message target_name comm_id (set (keys state)) state)
             A (action (step nil {:op :comm-add :port IOPUB :msgtype msgs/COMM-OPEN :content content}))
