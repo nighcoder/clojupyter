@@ -447,6 +447,12 @@
               (throw (ex-info (str "execute-reply-content - unknown status: " status)
                        {:opts opts})))))))
 
+(defn execute-error-response
+  [ename evalue traceback]
+  {:ename ename
+   :evalue evalue
+   :traceback traceback})
+
 (sdefn execute-request-content
   (s/cat :code string?, :allow-stdin? boolean, :silent? boolean?,
          :stop-on-error? boolean, :store-history? boolean?)

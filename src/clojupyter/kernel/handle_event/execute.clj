@@ -119,9 +119,10 @@
         halting?		(or interrupted? ename)
         first-segment?		(not continuing?)
         final-segment?		(or halting? (not need-input))
+        traceback       (collect-stacktrace-strings trace-result)
         reply			(if ename
                                   (msgs/execute-reply-content "error" exe-count
-                                                              {:traceback (collect-stacktrace-strings trace-result),
+                                                              {:traceback traceback,
                                                                :ename ename})
                                   (msgs/execute-reply-content "ok" exe-count))
         nrepl-ctx		(state/current-context)
@@ -151,14 +152,12 @@
                       {:op :get-input})))
        (s*when (and final-segment? (not silent?))
          (if ename
-           (s*a-l (send-step :iopub_port msgs/ERROR reply))
+           (s*a-l (send-step :iopub_port msgs/ERROR (msgs/execute-error-response  ename "" traceback)))
            (s*when-not hushed?
              (s*a-l (send-step :iopub_port msgs/EXECUTE-RESULT
                                (msgs/execute-result-content (u/parse-json-str (:result result) true) exe-count))))))
        (s*when final-segment?
-         (if ename
-           (s*a-l (send-step req-port msgs/ERROR reply))
-           (s*a-l (send-step req-port msgs/EXECUTE-REPLY reply))))
+         (s*a-l (send-step req-port msgs/EXECUTE-REPLY reply)))
        (s*when (and store-history? final-segment?)
          (s*a-l (step [`state/add-history! code]
                       {:op :add-history, :data code})))
