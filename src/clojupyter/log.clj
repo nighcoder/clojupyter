@@ -61,7 +61,7 @@
           (when-let [err ?err]
             (str "\n" (timbre/stacktrace err opts))))))))
 
-(def CONFIG {:timestamp-opts {:pattern "HH:mm:ss.SSS", :locale :jvm-default, :timezone :utc}
+(def CONFIG {:timestamp-opts {:pattern "HH:mm:ss.SSS", :locale :jvm-default, :timezone (java.util.TimeZone/getDefault)}
              :ns-blacklist ["io.pedestal.*"]
              :output-fn output-fn
              :level :warn})
