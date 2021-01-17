@@ -142,6 +142,7 @@
 ;;; ------------------------------------------------------------------------------------------------------------------------
 
 ;;FIXME: If :target_name does not exist, return COMM_CLOSE as reply.
+;; target_name is a always(?) the string "jupyter.widget"
 (defmethod calc* msgs/COMM-OPEN
   [_ S {:keys [req-message jup] :as ctx}]
   (assert (and req-message jup ctx))
@@ -163,7 +164,7 @@
             comm-atom (ca/create jup req-message target_name comm_id (set (keys state)) state)
             A (action (step nil {:op :comm-add :port IOPUB :msgtype msgs/COMM-OPEN :content content}))
             S' (comm-global-state/comm-atom-add S comm_id comm-atom)]
-          [A S']))))
+        [A S']))))
 
 (defmethod calc* msgs/COMM-CLOSE
   [_ S {:keys [req-message jup] :as ctx}]

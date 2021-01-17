@@ -4,7 +4,7 @@
    [midje.sweet							:refer [facts =>]]
    ,,
    [clojupyter.display			:as display]
-   [clojupyter.misc.mime-convertible]
+   [clojupyter.misc.mime-convertible :as mmc]
    [clojupyter.test-shared			:as ts]
    [clojupyter.protocol.mime-convertible	:as mc]
    ))
@@ -25,4 +25,4 @@
         ((pretty-maker display/hiccup) [:p "some text"]) => {:text/html "<p>some text</p>"})
 
 (facts "Should be able to produce rich content"
-        (.to-mime (display/render-mime :foo/bar "Foobar")) => "{\"foo/bar\":\"Foobar\"}")
+        (.to-mime (mmc/render-mime :foo/bar "Foobar")) => "{\"foo/bar\":\"Foobar\"}")

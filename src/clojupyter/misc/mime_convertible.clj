@@ -19,3 +19,9 @@
       (ImageIO/write o "png" out)
       (u/to-json-str
        {:image/png (-> out .toByteArray b64/encode String.)}))))
+
+(defn render-mime
+  [mime-type v]
+  (reify mc/PMimeConvertible
+    (to-mime [_]
+      (u/to-json-str (hash-map mime-type v)))))

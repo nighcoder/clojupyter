@@ -4,6 +4,7 @@
             [clojupyter.kernel.handle-event.execute :as exe]
             [clojupyter.kernel.handle-event.shared-ops :as sh]
             [clojupyter.kernel.jup-channels :as jup]
+            [clojupyter.misc.mime-convertible]
             [clojupyter.log :as log]
             [clojupyter.messages :as msgs]
             [clojupyter.test-shared :as ts]
@@ -60,7 +61,7 @@
 
 (fact
  "Using `render-mime` yields result tagged as the indicated mime-type."
- (let [code "(clojupyter.display/render-mime \"text/some-mimetype\" \"somestring\")"
+ (let [code "(clojupyter.misc.mime-convertible/render-mime \"text/some-mimetype\" \"somestring\")"
        {:keys [leave-action]} (eval-code code)
        specs (a/step-specs leave-action)
        [result-spec & _] (->> specs (filter (C :msgtype (p = msgs/EXECUTE-RESULT))))
